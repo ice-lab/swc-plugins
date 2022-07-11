@@ -1,0 +1,8 @@
+{
+  "name": "@ice/swc-plugins",
+  "version": "0.0.0",
+  "description": "plugins for swc.",
+  "scripts": {
+    "setup": "pnpm install"
+  }
+}

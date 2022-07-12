@@ -4,5 +4,8 @@
   "description": "plugins for swc.",
   "scripts": {
     "setup": "pnpm install"
-  }
+  },
+  "workspaces": [
+    "packages/*"
+  ]
 }

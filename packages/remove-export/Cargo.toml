@@ -17,6 +17,6 @@ swc_ecmascript="0.175.0"
 serde_json = {version = "1", features = ["unbounded_depth"]}
 
 [dev-dependencies]
-swc_ecma_parser="*"
+swc_ecma_parser="0.108.1"
 swc_ecma_transforms_testing="0.96.0"
 testing="*"

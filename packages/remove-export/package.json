@@ -1,6 +1,6 @@
 {
     "name": "@ice/swc-plugin-remove-export",
-    "version": "0.1.0-beta.1",
+    "version": "0.1.0",
     "description": "",
     "author": "",
     "license": "ISC",

@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "packages/remove-export",
+  "packages/keep-platform",
 ]
 
 [profile.release]

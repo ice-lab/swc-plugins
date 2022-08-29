@@ -1533,6 +1533,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "swc_plugin_keep_export"
+version = "0.1.0"
+dependencies = [
+ "easy-error",
+ "fxhash",
+ "serde",
+ "serde_json",
+ "swc_common 0.20.2",
+ "swc_ecma_parser",
+ "swc_ecma_transforms_testing",
+ "swc_ecmascript",
+ "swc_plugin",
+ "testing 0.22.0",
+ "tracing",
+]
+
+[[package]]
 name = "swc_plugin_keep_platform"
 version = "0.1.0"
 dependencies = [

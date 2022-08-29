@@ -2,6 +2,7 @@
 members = [
   "packages/remove-export",
   "packages/keep-platform",
+  "packages/keep-export"
 ]
 
 [profile.release]

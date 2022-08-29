@@ -1,0 +1,22 @@
+[package]
+name = "swc_plugin_keep_export"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde = "1"
+fxhash= "0.2.1"
+easy-error = "1.0.0"
+tracing="0.1.34"
+swc_plugin = "0.71.0"
+swc_common = "0.20.2"
+swc_ecmascript="0.175.0"
+serde_json = {version = "1", features = ["unbounded_depth"]}
+
+[dev-dependencies]
+swc_ecma_parser="0.108.1"
+swc_ecma_transforms_testing="0.96.0"
+testing="*"

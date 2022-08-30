@@ -50,14 +50,14 @@ impl State {
 struct Analyzer<'a> {
     state: &'a mut State,
     in_lhs_of_var: bool,
-    in_data_fn: bool,
+    in_kept_fn: bool,
 }
 
 impl Analyzer<'_> {
     fn add_ref(&mut self, id: Id) {
-        tracing::trace!("add_ref({}{:?}, data = {})", id.0, id.1, self.in_data_fn);
+        tracing::trace!("add_ref({}{:?}, data = {})", id.0, id.1, self.in_kept_fn);
 
-        if self.in_data_fn {
+        if self.in_kept_fn {
             self.state.refs_used.insert(id);
         } else {
             self.state.refs_from_other.insert(id);
@@ -67,13 +67,13 @@ impl Analyzer<'_> {
     fn check_default<T:FoldWith<Self>>(&mut self, e: T) -> T {
         if self.state.should_keep_default() {
             
-            let old_in_data = self.in_data_fn;
+            let old_in_kept = self.in_kept_fn;
 
-            self.in_data_fn = true;
+            self.in_kept_fn = true;
     
             let e = e.fold_children_with(self);
     
-            self.in_data_fn = old_in_data;
+            self.in_kept_fn = old_in_kept;
     
             return e
         }
@@ -87,7 +87,7 @@ impl Fold for Analyzer<'_> {
     noop_fold_type!();
 
     fn fold_binding_ident(&mut self, i: BindingIdent) -> BindingIdent {
-        if !self.in_lhs_of_var || self.in_data_fn {
+        if !self.in_lhs_of_var || self.in_kept_fn {
             self.add_ref(i.id.to_id());
         }
 
@@ -105,12 +105,12 @@ impl Fold for Analyzer<'_> {
     }
 
     fn fold_export_decl(&mut self, s: ExportDecl) -> ExportDecl {
-        let old_in_data = self.in_data_fn;
+        let old_in_kept = self.in_kept_fn;
 
         match &s.decl {
             Decl::Fn(f) => {
                 if self.state.should_keep_identifier(&f.ident) {
-                    self.in_data_fn = true;
+                    self.in_kept_fn = true;
                     self.add_ref(f.ident.to_id());
                 }
             }
@@ -121,7 +121,7 @@ impl Fold for Analyzer<'_> {
                 }
                 if let Pat::Ident(id) = &d.decls[0].name {
                     if self.state.should_keep_identifier(&id.id) {
-                        self.in_data_fn = true;
+                        self.in_kept_fn = true;
                         self.add_ref(id.to_id());
                     }
                 }
@@ -131,7 +131,7 @@ impl Fold for Analyzer<'_> {
 
         let e = s.fold_children_with(self);
 
-        self.in_data_fn = old_in_data;
+        self.in_kept_fn = old_in_kept;
 
         return e;
     }
@@ -171,7 +171,7 @@ impl Fold for Analyzer<'_> {
 
         let f = f.fold_children_with(self);
 
-        if self.in_data_fn {
+        if self.in_kept_fn {
             self.add_ref(f.ident.to_id());
         }
 
@@ -308,12 +308,12 @@ impl KeepExportsExprs {
     {
         tracing::debug!("mark_as_candidate");
 
-        // Analyzer never change `in_data_fn` to false, so all identifiers in `n` will
+        // Analyzer never change `in_kept_fn` to false, so all identifiers in `n` will
         // be marked as referenced from a data function.
         let mut v = Analyzer {
             state: &mut self.state,
             in_lhs_of_var: false,
-            in_data_fn: false,
+            in_kept_fn: false,
         };
 
         let n = n.fold_with(&mut v);
@@ -377,7 +377,7 @@ impl Fold for KeepExportsExprs {
             let mut v = Analyzer {
                 state: &mut self.state,
                 in_lhs_of_var: false,
-                in_data_fn: false,
+                in_kept_fn: false,
             };
             m = m.fold_with(&mut v);
         }

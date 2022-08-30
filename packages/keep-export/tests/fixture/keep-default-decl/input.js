@@ -8,6 +8,14 @@ export async function getData() {
   rest
 }
 
-export function getConfig() {
+function getConfig() {
   console.log(1)
+}
+
+export const name1 = getConfig;
+
+export default class Home {
+  constructor() {
+    console.log(a);
+  }
 }

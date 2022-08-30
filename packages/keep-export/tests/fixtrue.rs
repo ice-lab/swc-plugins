@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use swc_ecma_parser::{EsConfig, Syntax};
 use swc_ecma_transforms_testing::{test, test_fixture};
 use swc_plugin_keep_export::{keep_exprs};
 

@@ -17,3 +17,18 @@ fn fixture_base(input: PathBuf) {
     &output,
   );
 }
+
+#[testing::fixture("tests/fixture/base/base/input.js")]
+fn fixture_default(input: PathBuf) {
+  let parent = input.parent().unwrap();
+  let output = parent.join("output.js");
+
+  test_fixture(
+    Default::default(),
+    &|_t| {
+      keep_exprs([String::from("getData")].to_vec())
+    },
+    &input,
+    &output,
+  );
+}

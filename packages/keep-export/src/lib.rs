@@ -42,8 +42,8 @@ impl State {
         self.keep_exports.contains(&String::from(&*i.sym))
     }
 
-    fn should_remove_default(&mut self) -> bool {
-        !self.keep_exports.contains(&String::from("default"))
+    fn should_keep_default(&mut self) -> bool {
+        self.keep_exports.contains(&String::from("default"))
     }
 }
 
@@ -57,21 +57,15 @@ impl Analyzer<'_> {
     fn add_ref(&mut self, id: Id) {
         tracing::trace!("add_ref({}{:?}, data = {})", id.0, id.1, self.in_data_fn);
 
-        // println!("add ref {:?}", id);
-
         if self.in_data_fn {
             self.state.refs_used.insert(id);
         } else {
             self.state.refs_from_other.insert(id);
         }
-
-        // println!("refs_used {:?}", self.state.refs_used);
-        // println!("refs_from_other {:?}", self.state.refs_from_other);
-        // println!("----------------");
     }
 
     fn check_default<T:FoldWith<Self>>(&mut self, e: T) -> T {
-        if self.state.should_remove_default() {
+        if self.state.should_keep_default() {
             
             let old_in_data = self.in_data_fn;
 
@@ -84,7 +78,7 @@ impl Analyzer<'_> {
             return e
         }
 
-        return e.fold_children_with(self);
+        return e;
     }
 }
 
@@ -224,8 +218,29 @@ impl Fold for Analyzer<'_> {
                     if d.decls.is_empty() {
                         return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
                     }
+
+                    if let Pat::Ident(id) = &d.decls[0].name {
+                        if self.state.should_keep_identifier(&id.id) {
+                            let s = s.fold_children_with(self);
+                            return s;
+                        } else {
+                            return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
+                        }
+                    }
                 }
                 _ => {}
+            }
+        }
+
+        if let ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(_e)) = &s {
+            if !self.state.should_keep_default() {
+                return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
+            }
+        }
+
+        if let ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultDecl(_e)) = &s {
+            if !self.state.should_keep_default() {
+                return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
             }
         }
 
@@ -283,11 +298,6 @@ struct KeepExportsExprs {
 
 impl KeepExportsExprs {
     fn should_remove(&self, id: Id) -> bool {
-        // println!("should remove？ {:?}", id);
-        // println!("refs_used {:?}", self.state.refs_used);
-        // println!("refs_from_other {:?}", self.state.refs_from_other);
-        // println!("----------------");
-
         !self.state.refs_used.contains(&id) && !self.state.refs_from_other.contains(&id)
     }
 
@@ -309,25 +319,6 @@ impl KeepExportsExprs {
         let n = n.fold_with(&mut v);
         self.state.should_run_again = true;
         n
-    }
-
-    fn create_empty_fn(&mut self) -> FnExpr {
-        return FnExpr {
-            ident: None,
-            function: Function {
-                params: vec![],
-                body: Some(BlockStmt {
-                    span: DUMMY_SP,
-                    stmts: vec![]
-                }),
-                span: DUMMY_SP,
-                is_generator: false,
-                is_async: false,
-                decorators: vec![],
-                return_type: None,
-                type_params: None,
-            }
-        };
     }
 }
 
@@ -457,12 +448,11 @@ impl Fold for KeepExportsExprs {
                     tracing::trace!("Dropping a export specifier");
 
                     if let ExportSpecifier::Named(ExportNamedSpecifier {
-                        orig: ModuleExportName::Ident(orig),
+                        orig: ModuleExportName::Ident(_orig),
                         ..
                     }) = s
                     {
                         self.state.should_run_again = true;
-                        // self.state.refs_used.insert(orig.to_id());
                     }
 
                     false
@@ -471,25 +461,6 @@ impl Fold for KeepExportsExprs {
             }
         });
 
-        n
-    }
-
-    fn fold_default_decl(&mut self, d: DefaultDecl) -> DefaultDecl {
-        if self.state.should_remove_default() {
-            // Replace with an empty function
-            return DefaultDecl::Fn(self.create_empty_fn())
-        }
-        d
-    }
-
-    fn fold_export_default_expr(&mut self, n: ExportDefaultExpr) -> ExportDefaultExpr {
-        if self.state.should_remove_default() {
-            // Replace with an empty function
-            return ExportDefaultExpr {
-                span: DUMMY_SP,
-                expr: Box::new(Expr::Fn(self.create_empty_fn()))
-            };
-        }
         n
     }
 

@@ -1,4 +1,3 @@
-use easy_error::{Error};
 use fxhash::FxHashSet;
 use std::mem::take;
 use swc_common::pass::{Repeat, Repeated};
@@ -9,10 +8,10 @@ use swc_ecmascript::visit::{noop_fold_type, Fold};
 use swc_plugin::{plugin_transform, TransformPluginProgramMetadata};
 
 /// Note: This paths requires running `resolver` **before** running this.
-pub fn keep_exprs(remove_exports: Vec<String>) -> impl Fold {
-    Repeat::new(RemoveExportsExprs {
+pub fn keep_exprs(keep_exports: Vec<String>) -> impl Fold {
+    Repeat::new(KeepExportsExprs {
         state: State {
-            remove_exports: remove_exports,
+            keep_exports: keep_exports,
             ..Default::default()
         },
         in_lhs_of_var: false,
@@ -22,30 +21,29 @@ pub fn keep_exprs(remove_exports: Vec<String>) -> impl Fold {
 /// State of the transforms. Shared by the analyzer and the transform.
 #[derive(Debug, Default)]
 struct State {
-    /// Identifiers referenced by non-data function codes.
+    /// Identifiers referenced by other functions.
     ///
     /// Cleared before running each pass, because we drop ast nodes between the
     /// passes.
     refs_from_other: FxHashSet<Id>,
 
-    /// Identifiers referenced by data functions or derivatives.
+    /// Identifiers referenced by kept functions or derivatives.
     ///
     /// Preserved between runs, because we should remember derivatives of data
     /// functions as the data function itself is already removed.
-    refs_from_data_fn: FxHashSet<Id>,
-
-    cur_declaring: FxHashSet<Id>,
+    refs_used: FxHashSet<Id>,
 
     should_run_again: bool,
-    remove_exports: Vec<String>,
+    keep_exports: Vec<String>,
 }
 
 impl State {
-    fn should_remove_identifier(&mut self, i: &Ident) -> Result<bool, Error> {
-        Ok(self.remove_exports.contains(&String::from(&*i.sym)))
+    fn should_keep_identifier(&mut self, i: &Ident) -> bool {
+        self.keep_exports.contains(&String::from(&*i.sym))
     }
+
     fn should_remove_default(&mut self) -> bool {
-        self.remove_exports.contains(&String::from("default"))
+        !self.keep_exports.contains(&String::from("default"))
     }
 }
 
@@ -58,15 +56,18 @@ struct Analyzer<'a> {
 impl Analyzer<'_> {
     fn add_ref(&mut self, id: Id) {
         tracing::trace!("add_ref({}{:?}, data = {})", id.0, id.1, self.in_data_fn);
-        if self.in_data_fn {
-            self.state.refs_from_data_fn.insert(id);
-        } else {
-            if self.state.cur_declaring.contains(&id) {
-                return;
-            }
 
+        // println!("add ref {:?}", id);
+
+        if self.in_data_fn {
+            self.state.refs_used.insert(id);
+        } else {
             self.state.refs_from_other.insert(id);
         }
+
+        // println!("refs_used {:?}", self.state.refs_used);
+        // println!("refs_from_other {:?}", self.state.refs_from_other);
+        // println!("----------------");
     }
 
     fn check_default<T:FoldWith<Self>>(&mut self, e: T) -> T {
@@ -101,7 +102,7 @@ impl Fold for Analyzer<'_> {
 
     fn fold_export_named_specifier(&mut self, s: ExportNamedSpecifier) -> ExportNamedSpecifier {
         if let ModuleExportName::Ident(id) = &s.orig {
-            if !self.state.remove_exports.contains(&String::from(&*id.sym)) {
+            if self.state.should_keep_identifier(id) {
                 self.add_ref(id.to_id());
             }
         }
@@ -114,11 +115,9 @@ impl Fold for Analyzer<'_> {
 
         match &s.decl {
             Decl::Fn(f) => {
-                if let Ok(should_remove_identifier) = self.state.should_remove_identifier(&f.ident) {
-                    if should_remove_identifier {
-                        self.in_data_fn = true;
-                        self.add_ref(f.ident.to_id());
-                    }
+                if self.state.should_keep_identifier(&f.ident) {
+                    self.in_data_fn = true;
+                    self.add_ref(f.ident.to_id());
                 }
             }
 
@@ -127,7 +126,7 @@ impl Fold for Analyzer<'_> {
                     return s;
                 }
                 if let Pat::Ident(id) = &d.decls[0].name {
-                    if self.state.remove_exports.contains(&String::from(&*id.id.sym)) {
+                    if self.state.should_keep_identifier(&id.id) {
                         self.in_data_fn = true;
                         self.add_ref(id.to_id());
                     }
@@ -210,18 +209,14 @@ impl Fold for Analyzer<'_> {
             _ => {}
         };
 
-        // Visit children to ensure that all references is added to the scope.
-        let s = s.fold_children_with(self);
-
         if let ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(e)) = &s {
             match &e.decl {
                 Decl::Fn(f) => {
-                    if let Ok(should_remove_identifier) = self.state.should_remove_identifier(&f.ident) {
-                        if should_remove_identifier {
-                            return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
-                        }
-                    } else {
+                    if self.state.should_keep_identifier(&f.ident) {
+                        let s = s.fold_children_with(self);
                         return s;
+                    } else {
+                        return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
                     }
                 }
 
@@ -233,6 +228,9 @@ impl Fold for Analyzer<'_> {
                 _ => {}
             }
         }
+
+        // Visit children to ensure that all references is added to the scope.
+        let s = s.fold_children_with(self);
 
         s
     }
@@ -278,14 +276,19 @@ impl Fold for Analyzer<'_> {
 }
 
 /// Actual implementation of the transform.
-struct RemoveExportsExprs {
+struct KeepExportsExprs {
     pub state: State,
     in_lhs_of_var: bool,
 }
 
-impl RemoveExportsExprs {
+impl KeepExportsExprs {
     fn should_remove(&self, id: Id) -> bool {
-        self.state.refs_from_data_fn.contains(&id) && !self.state.refs_from_other.contains(&id)
+        // println!("should remove？ {:?}", id);
+        // println!("refs_used {:?}", self.state.refs_used);
+        // println!("refs_from_other {:?}", self.state.refs_from_other);
+        // println!("----------------");
+
+        !self.state.refs_used.contains(&id) && !self.state.refs_from_other.contains(&id)
     }
 
     /// Mark identifiers in `n` as a candidate for removal.
@@ -300,7 +303,7 @@ impl RemoveExportsExprs {
         let mut v = Analyzer {
             state: &mut self.state,
             in_lhs_of_var: false,
-            in_data_fn: true,
+            in_data_fn: false,
         };
 
         let n = n.fold_with(&mut v);
@@ -328,14 +331,13 @@ impl RemoveExportsExprs {
     }
 }
 
-impl Repeated for RemoveExportsExprs {
+impl Repeated for KeepExportsExprs {
     fn changed(&self) -> bool {
         self.state.should_run_again
     }
 
     fn reset(&mut self) {
         self.state.refs_from_other.clear();
-        self.state.cur_declaring.clear();
         self.state.should_run_again = false;
     }
 }
@@ -344,7 +346,7 @@ impl Repeated for RemoveExportsExprs {
 /// to read.
 ///
 /// Note: We don't implement `fold_script` because next.js doesn't use it.
-impl Fold for RemoveExportsExprs {
+impl Fold for KeepExportsExprs {
     // This is important for reducing binary sizes.
     noop_fold_type!();
 
@@ -440,21 +442,19 @@ impl Fold for RemoveExportsExprs {
                     ..
                 }) => self
                     .state
-                    .should_remove_identifier(exported)
-                    .map(|should_remove_identifier| !should_remove_identifier),
+                    .should_keep_identifier(exported),
                 ExportSpecifier::Named(ExportNamedSpecifier {
                     orig: ModuleExportName::Ident(orig),
                     ..
                 }) => self
                     .state
-                    .should_remove_identifier(orig)
-                    .map(|should_remove_identifier| !should_remove_identifier),
-                _ => Ok(true),
+                    .should_keep_identifier(orig),
+                _ => false,
             };
 
             match preserve {
-                Ok(false) => {
-                    tracing::trace!("Dropping a export specifier because it's a data identifier");
+                false => {
+                    tracing::trace!("Dropping a export specifier");
 
                     if let ExportSpecifier::Named(ExportNamedSpecifier {
                         orig: ModuleExportName::Ident(orig),
@@ -462,13 +462,12 @@ impl Fold for RemoveExportsExprs {
                     }) = s
                     {
                         self.state.should_run_again = true;
-                        self.state.refs_from_data_fn.insert(orig.to_id());
+                        // self.state.refs_used.insert(orig.to_id());
                     }
 
                     false
                 }
-                Ok(true) => true,
-                Err(_) => false,
+                true => true,
             }
         });
 

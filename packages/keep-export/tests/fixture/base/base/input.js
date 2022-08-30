@@ -1,3 +1,5 @@
+const a = 123;
+
 export const getData = () => {
   return "123";
 }

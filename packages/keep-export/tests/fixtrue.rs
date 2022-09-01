@@ -90,3 +90,63 @@ fn fixture_remove_all(input: PathBuf) {
     &output,
   );
 }
+
+#[testing::fixture("tests/fixture/remove-top-expr/input.js")]
+fn fixture_remove_top_expr(input: PathBuf) {
+  let parent = input.parent().unwrap();
+  let output = parent.join("output.js");
+
+  test_fixture(
+    Default::default(),
+    &|_t| {
+      keep_exprs([String::from("getData")].to_vec())
+    },
+    &input,
+    &output,
+  );
+}
+
+#[testing::fixture("tests/fixture/remove-top-func/input.js")]
+fn fixture_remove_top_func(input: PathBuf) {
+  let parent = input.parent().unwrap();
+  let output = parent.join("output.js");
+
+  test_fixture(
+    Default::default(),
+    &|_t| {
+      keep_exprs([String::from("getData")].to_vec())
+    },
+    &input,
+    &output,
+  );
+}
+
+#[testing::fixture("tests/fixture/remove-side-effect-import/input.js")]
+fn fixture_remove_side_effect_import(input: PathBuf) {
+  let parent = input.parent().unwrap();
+  let output = parent.join("output.js");
+
+  test_fixture(
+    Default::default(),
+    &|_t| {
+      keep_exprs([String::from("getData")].to_vec())
+    },
+    &input,
+    &output,
+  );
+}
+
+#[testing::fixture("tests/fixture/remove-top-if-state/input.js")]
+fn fixture_remove_top_if_state(input: PathBuf) {
+  let parent = input.parent().unwrap();
+  let output = parent.join("output.js");
+
+  test_fixture(
+    Default::default(),
+    &|_t| {
+      keep_exprs([String::from("getData")].to_vec())
+    },
+    &input,
+    &output,
+  );
+}

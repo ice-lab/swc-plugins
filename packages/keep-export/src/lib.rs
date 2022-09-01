@@ -200,6 +200,15 @@ impl Fold for Analyzer<'_> {
 
                 return ModuleItem::ModuleDecl(ModuleDecl::ExportNamed(e));
             }
+
+            ModuleItem::Stmt(Stmt::Expr(_e)) => {
+                // remove top expression
+                return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
+            }
+
+            ModuleItem::Stmt(Stmt::If(_e)) => {
+                return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
+            }
             _ => {}
         };
 
@@ -407,10 +416,9 @@ impl Fold for KeepExportsExprs {
 
     fn fold_module_item(&mut self, i: ModuleItem) -> ModuleItem {
         if let ModuleItem::ModuleDecl(ModuleDecl::Import(i)) = i {
-            let is_for_side_effect = i.specifiers.is_empty();
             let i = i.fold_with(self);
 
-            if !is_for_side_effect && i.specifiers.is_empty() {
+            if i.specifiers.is_empty() {
                 return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
             }
 

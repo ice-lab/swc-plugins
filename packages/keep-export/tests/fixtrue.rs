@@ -61,7 +61,6 @@ fn fixture_default_decl(input: PathBuf) {
     &output,
   );
 }
-
 #[testing::fixture("tests/fixture/keep-default-expr/input.js")]
 fn fixture_default_expr(input: PathBuf) {
   let parent = input.parent().unwrap();
@@ -71,6 +70,21 @@ fn fixture_default_expr(input: PathBuf) {
     Default::default(),
     &|_t| {
       keep_exprs([String::from("default")].to_vec())
+    },
+    &input,
+    &output,
+  );
+}
+
+#[testing::fixture("tests/fixture/remove-all/input.js")]
+fn fixture_remove_all(input: PathBuf) {
+  let parent = input.parent().unwrap();
+  let output = parent.join("output.js");
+
+  test_fixture(
+    Default::default(),
+    &|_t| {
+      keep_exprs([String::from("getServerData")].to_vec())
     },
     &input,
     &output,

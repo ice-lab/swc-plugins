@@ -391,6 +391,17 @@ impl Fold for KeepExportsExprs {
         // Drop nodes.
         items.retain(|s| !matches!(s, ModuleItem::Stmt(Stmt::Empty(..))));
 
+        // If all exports are deleted, return the empty named export.
+        if items.len() == 0 {
+            items.push(ModuleItem::ModuleDecl(ModuleDecl::ExportNamed(NamedExport{
+                span: DUMMY_SP,
+                specifiers:  Vec::new(),
+                src: None,
+                type_only: false,
+                asserts: None
+            })));
+        }
+
         items
     }
 

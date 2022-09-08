@@ -150,3 +150,33 @@ fn fixture_remove_top_if_state(input: PathBuf) {
     &output,
   );
 }
+
+#[testing::fixture("tests/fixture/remove-top-do-while/input.js")]
+fn fixture_remove_top_do_while(input: PathBuf) {
+  let parent = input.parent().unwrap();
+  let output = parent.join("output.js");
+
+  test_fixture(
+    Default::default(),
+    &|_t| {
+      keep_exprs([String::from("getData")].to_vec())
+    },
+    &input,
+    &output,
+  );
+}
+
+#[testing::fixture("tests/fixture/remove-top-try-catch/input.js")]
+fn fixture_remove_top_try_catch(input: PathBuf) {
+  let parent = input.parent().unwrap();
+  let output = parent.join("output.js");
+
+  test_fixture(
+    Default::default(),
+    &|_t| {
+      keep_exprs([String::from("getData")].to_vec())
+    },
+    &input,
+    &output,
+  );
+}

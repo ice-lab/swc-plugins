@@ -209,6 +209,10 @@ impl Fold for Analyzer<'_> {
             ModuleItem::Stmt(Stmt::If(_e)) => {
                 return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
             }
+
+            ModuleItem::Stmt(Stmt::Try(_e)) => {
+                return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
+            }
             _ => {}
         };
 

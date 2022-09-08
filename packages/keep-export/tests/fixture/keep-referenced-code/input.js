@@ -1,10 +1,20 @@
 import fs from 'fs'
 
-const [a, b, ...rest] = fs.promises
+const [a, b, c, ...rest] = fs.promises
+
+const data = {
+  id: 123
+}
+
+const { name } = c;
 
 export async function getData() {
-  a
-  b
+  return {
+    a,
+    b,
+    id: data.id,
+    name
+  };
 }
 
 function getConfig() {

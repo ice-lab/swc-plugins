@@ -210,6 +210,10 @@ impl Fold for Analyzer<'_> {
                 return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
             }
 
+            ModuleItem::Stmt(Stmt::DoWhile(_e)) => {
+                return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
+            }
+
             ModuleItem::Stmt(Stmt::Try(_e)) => {
                 return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
             }

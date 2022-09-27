@@ -1,5 +1,7 @@
 use std::path::PathBuf;
-use swc_ecma_transforms_testing::{test, test_fixture};
+use swc_core::{
+  ecma::transforms::testing::{test, test_fixture},
+};
 use swc_plugin_keep_export::{keep_exprs};
 
 #[testing::fixture("tests/fixture/base/input.js")]

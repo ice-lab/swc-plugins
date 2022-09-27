@@ -5,4 +5,4 @@ const [foo] = other;
 export default function Home() {
     console.log(b);
     return <div />;
-};
+}

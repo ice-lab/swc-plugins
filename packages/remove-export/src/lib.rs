@@ -3,10 +3,13 @@ use fxhash::FxHashSet;
 use std::mem::take;
 use swc_common::pass::{Repeat, Repeated};
 use swc_common::DUMMY_SP;
-use swc_ecmascript::ast::*;
-use swc_ecmascript::visit::FoldWith;
-use swc_ecmascript::visit::{noop_fold_type, Fold};
-use swc_plugin::{plugin_transform, TransformPluginProgramMetadata};
+use swc_core::{
+    ecma::{
+        ast::*,
+        visit::{Fold, FoldWith, noop_fold_type},
+    },
+    plugin::{plugin_transform, proxies::TransformPluginProgramMetadata},
+};
 
 /// Note: This paths requires running `resolver` **before** running this.
 pub fn remove_export_exprs(remove_exports: Vec<String>) -> impl Fold {
@@ -311,7 +314,7 @@ impl RemoveExportsExprs {
     fn create_empty_fn(&mut self) -> FnExpr {
         return FnExpr {
             ident: None,
-            function: Function {
+            function: Box::new(Function {
                 params: vec![],
                 body: Some(BlockStmt {
                     span: DUMMY_SP,
@@ -323,7 +326,7 @@ impl RemoveExportsExprs {
                 decorators: vec![],
                 return_type: None,
                 type_params: None,
-            }
+            })
         };
     }
 }
@@ -641,7 +644,12 @@ impl Fold for RemoveExportsExprs {
 /// results back to host. Refer swc_plugin_macro how does it work internally.
 #[plugin_transform]
 pub fn process_transform(program: Program, _metadata: TransformPluginProgramMetadata) -> Program {
-    let tr: Vec<String> = serde_json::from_str(&_metadata.plugin_config).unwrap();
+    let tr = serde_json::from_str::<Vec<String>>(
+        &_metadata
+            .get_transform_plugin_config()
+            .expect("failed to get plugin config for remove-export"),
+    )
+    .expect("invalid config for remove-export");
 
     program.fold_with(&mut remove_export_exprs(tr))
 }

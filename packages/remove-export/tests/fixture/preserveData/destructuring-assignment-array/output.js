@@ -8,4 +8,4 @@ export async function getData() {
     rest;
     bar;
 }
-export default function() {};
+export default function() {}

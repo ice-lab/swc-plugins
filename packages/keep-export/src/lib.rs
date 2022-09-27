@@ -2,10 +2,13 @@ use fxhash::FxHashSet;
 use std::mem::take;
 use swc_common::pass::{Repeat, Repeated};
 use swc_common::DUMMY_SP;
-use swc_ecmascript::ast::*;
-use swc_ecmascript::visit::FoldWith;
-use swc_ecmascript::visit::{noop_fold_type, Fold};
-use swc_plugin::{plugin_transform, TransformPluginProgramMetadata};
+use swc_core::{
+    ecma::{
+        ast::*,
+        visit::{Fold, FoldWith, noop_fold_type},
+    },
+    plugin::{plugin_transform, proxies::TransformPluginProgramMetadata},
+};
 
 /// Note: This paths requires running `resolver` **before** running this.
 pub fn keep_exprs(keep_exports: Vec<String>) -> impl Fold {
@@ -638,7 +641,11 @@ impl Fold for KeepExportsExprs {
 /// results back to host. Refer swc_plugin_macro how does it work internally.
 #[plugin_transform]
 pub fn process_transform(program: Program, _metadata: TransformPluginProgramMetadata) -> Program {
-    let tr: Vec<String> = serde_json::from_str(&_metadata.plugin_config).unwrap();
-
+    let tr = serde_json::from_str::<Vec<String>>(
+        &_metadata
+            .get_transform_plugin_config()
+            .expect("failed to get plugin config for keep-export"),
+    )
+    .expect("invalid config for keep-export");
     program.fold_with(&mut keep_exprs(tr))
 }

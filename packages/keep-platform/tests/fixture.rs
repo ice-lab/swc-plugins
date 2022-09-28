@@ -1,5 +1,7 @@
 use std::path::PathBuf;
-use swc_ecma_transforms_testing::{test, test_fixture};
+use swc_core::{
+  ecma::transforms::testing::{test, test_fixture},
+};
 use swc_plugin_keep_platform::{keep_platform, KeepPlatformConfig};
 
 #[testing::fixture("tests/fixture/empty/input.js")]

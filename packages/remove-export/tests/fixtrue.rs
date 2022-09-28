@@ -1,6 +1,8 @@
 use std::path::PathBuf;
-use swc_ecma_parser::{EsConfig, Syntax};
-use swc_ecma_transforms_testing::{test, test_fixture};
+use swc_core::{
+  ecma::parser::{EsConfig, Syntax},
+  ecma::transforms::testing::test_fixture,
+};
 use swc_plugin_remove_export::{remove_export_exprs};
 
 #[testing::fixture("tests/fixture/base/input.js")]

@@ -2,15 +2,14 @@ use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use swc_common::DUMMY_SP;
-use swc_ecmascript::ast::{
-    BindingIdent, Bool, Decl, Expr, Ident, ImportNamedSpecifier, ImportSpecifier,
-    ImportStarAsSpecifier, KeyValueProp, Lit, ModuleDecl, ModuleItem, ObjectLit, Pat, Prop,
-    PropName, PropOrSpread, Stmt, VarDecl, VarDeclKind, VarDeclarator,
+use swc_core::{
+    ecma::{
+        ast::*,
+        atoms::JsWord,
+        visit::{Fold, FoldWith},
+    },
+    plugin::{plugin_transform, proxies::TransformPluginProgramMetadata},
 };
-use swc_ecmascript::visit::Fold;
-use swc_atoms::JsWord;
-use swc_plugin::{ast::*, plugin_transform, TransformPluginProgramMetadata};
-
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct KeepPlatformPatcher {
@@ -166,12 +165,12 @@ fn insert_decls_into_module_items(decls: Vec<VarDeclarator>, module_items: &mut 
     if decls.len() > 0 {
         module_items.insert(
             0,
-            ModuleItem::Stmt(Stmt::Decl(Decl::Var(VarDecl {
+            ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
                 span: DUMMY_SP,
                 kind: VarDeclKind::Var,
                 declare: false,
                 decls: decls,
-            }))),
+            })))),
         )
     }
 }
@@ -210,6 +209,12 @@ fn create_bool_expr(value: bool) -> Expr {
 
 #[plugin_transform]
 pub fn process_transform(program: Program, _metadata: TransformPluginProgramMetadata) -> Program {
-    let platform: KeepPlatformConfig = serde_json::from_str(&_metadata.plugin_config).unwrap();
+    let platform = serde_json::from_str::<KeepPlatformConfig>(
+        &_metadata
+            .get_transform_plugin_config()
+            .expect("failed to get plugin config for keep-platform"),
+    )
+    .expect("invalid config for keep-platform");
+
     program.fold_with(&mut keep_platform(platform))
 }

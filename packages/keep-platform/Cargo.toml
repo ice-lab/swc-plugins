@@ -11,7 +11,7 @@ serde = "1"
 fxhash= "0.2.1"
 lazy_static = "1.4.0"
 easy-error = "1.0.0"
-tracing="0.1.34"
+tracing = { version="0.1.34", features = ["release_max_level_info"] }
 swc_core = { version = "0.26.0", features = [
   "plugin_transform",
   "ecma_utils",

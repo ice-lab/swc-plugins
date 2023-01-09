@@ -4,6 +4,21 @@ use swc_core::{
 };
 use swc_plugin_keep_export::{keep_exprs};
 
+#[testing::fixture("tests/fixture/class-component/input.js")]
+fn fixture_class(input: PathBuf) {
+  let parent = input.parent().unwrap();
+  let output = parent.join("output.js");
+
+  test_fixture(
+    Default::default(),
+    &|_t| {
+      keep_exprs([String::from("getData")].to_vec())
+    },
+    &input,
+    &output,
+  );
+}
+
 #[testing::fixture("tests/fixture/base/input.js")]
 fn fixture_base(input: PathBuf) {
   let parent = input.parent().unwrap();

@@ -580,6 +580,14 @@ impl Fold for KeepExportsExprs {
 
                 s = Stmt::Decl(Decl::Fn(f));
             }
+            Stmt::Decl(Decl::Class(c)) => {
+                if self.should_remove(c.ident.to_id()) {
+                    self.mark_as_candidate(c.class);
+                    return  Stmt::Empty(EmptyStmt { span: DUMMY_SP });
+                }
+
+                s = Stmt::Decl(Decl::Class(c));
+            }
             _ => {}
         }
 

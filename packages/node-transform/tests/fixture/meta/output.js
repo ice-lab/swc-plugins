@@ -1,0 +1,1 @@
+console.log(__ice_import_meta__.url);

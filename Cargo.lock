@@ -1591,6 +1591,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "swc_plugin_node_transform"
+version = "0.1.0"
+dependencies = [
+ "easy-error",
+ "fxhash",
+ "serde",
+ "serde_json",
+ "swc_common",
+ "swc_core",
+ "testing",
+ "tracing",
+]
+
+[[package]]
 name = "swc_plugin_proxy"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

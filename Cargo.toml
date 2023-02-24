@@ -2,7 +2,8 @@
 members = [
   "packages/remove-export",
   "packages/keep-platform",
-  "packages/keep-export"
+  "packages/keep-export",
+  "packages/node-transform"
 ]
 
 [profile.release]

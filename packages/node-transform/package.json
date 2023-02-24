@@ -1,0 +1,13 @@
+{
+    "name": "@ice/swc-plugin-node-transform",
+    "version": "0.1.0",
+    "license": "MIT",
+    "keywords": ["swc-plugin"],
+    "main": "swc_plugin_node_transform.wasm",
+    "scripts": {
+        "prepublishOnly": "cargo prepublish --release && cp ../../target/wasm32-wasi/release/swc_plugin_node_transform.wasm ."
+    },
+    "publishConfig": {
+        "access": "public"
+    }
+}

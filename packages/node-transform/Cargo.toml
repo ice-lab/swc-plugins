@@ -11,14 +11,14 @@ serde = "1"
 fxhash= "0.2.1"
 easy-error = "1.0.0"
 tracing = { version="0.1.34", features = ["release_max_level_info"] }
-swc_core = { version = "0.26.0", features = [
-  "plugin_transform",
+swc_core = { version = "0.69.0", features = [
+  "ecma_plugin_transform",
   "ecma_utils",
   "ecma_visit",
   "ecma_ast",
   "common",
 ]}
-swc_common = { version = "0.28.10", features = ["concurrent"] }
+swc_common = { version = "0.29.37", features = ["concurrent"] }
 serde_json = {version = "1", features = ["unbounded_depth"]}
 
 [dev-dependencies]

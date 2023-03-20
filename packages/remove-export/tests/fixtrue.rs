@@ -1,11 +1,12 @@
 use std::path::PathBuf;
 use swc_core::{
   ecma::parser::{EsConfig, Syntax},
-  ecma::transforms::testing::test_fixture,
+  ecma::transforms::testing::{test_fixture, FixtureTestConfig},
 };
+use testing::fixture;
 use swc_plugin_remove_export::{remove_export_exprs};
 
-#[testing::fixture("tests/fixture/base/input.js")]
+#[fixture("tests/fixture/base/input.js")]
 fn fixture_base(input: PathBuf) {
   let parent = input.parent().unwrap();
   let output = parent.join("output.js");
@@ -17,10 +18,13 @@ fn fixture_base(input: PathBuf) {
     },
     &input,
     &output,
+    FixtureTestConfig {
+      ..Default::default()
+    },
   );
 }
 
-#[testing::fixture("tests/fixture/preserveConfig/**/input.js")]
+#[fixture("tests/fixture/preserveConfig/**/input.js")]
 fn fixture_preserve_config(input: PathBuf) {
   let parent = input.parent().unwrap();
   let output = parent.join("output.js");
@@ -36,10 +40,13 @@ fn fixture_preserve_config(input: PathBuf) {
     },
     &input,
     &output,
+    FixtureTestConfig {
+      ..Default::default()
+    },
   );
 }
 
-#[testing::fixture("tests/fixture/preserveConfigAndDefault/**/input.js")]
+#[fixture("tests/fixture/preserveConfigAndDefault/**/input.js")]
 fn fixture_preserve_config_and_config(input: PathBuf) {
   let parent = input.parent().unwrap();
   let output = parent.join("output.js");
@@ -55,10 +62,13 @@ fn fixture_preserve_config_and_config(input: PathBuf) {
     },
     &input,
     &output,
+    FixtureTestConfig {
+      ..Default::default()
+    },
   );
 }
 
-#[testing::fixture("tests/fixture/preserveData/**/input.js")]
+#[fixture("tests/fixture/preserveData/**/input.js")]
 fn fixture_preserve_data(input: PathBuf) {
   let parent = input.parent().unwrap();
   let output = parent.join("output.js");
@@ -74,10 +84,13 @@ fn fixture_preserve_data(input: PathBuf) {
     },
     &input,
     &output,
+    FixtureTestConfig {
+      ..Default::default()
+    },
   );
 }
 
-#[testing::fixture("tests/fixture/preserveDefault/**/input.js")]
+#[fixture("tests/fixture/preserveDefault/**/input.js")]
 fn fixture_preserve_default(input: PathBuf) {
   let parent = input.parent().unwrap();
   let output = parent.join("output.js");
@@ -93,10 +106,13 @@ fn fixture_preserve_default(input: PathBuf) {
     },
     &input,
     &output,
+    FixtureTestConfig {
+      ..Default::default()
+    },
   );
 }
 
-#[testing::fixture("tests/fixture/removeData/**/input.js")]
+#[fixture("tests/fixture/removeData/**/input.js")]
 fn fixture_remove_data(input: PathBuf) {
   let parent = input.parent().unwrap();
   let output = parent.join("output.js");
@@ -112,5 +128,8 @@ fn fixture_remove_data(input: PathBuf) {
     },
     &input,
     &output,
+    FixtureTestConfig {
+      ..Default::default()
+    },
   );
 }

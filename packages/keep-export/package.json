@@ -1,6 +1,6 @@
 {
     "name": "@ice/swc-plugin-keep-export",
-    "version": "0.1.4",
+    "version": "0.1.5",
     "license": "MIT",
     "keywords": ["swc-plugin"],
     "main": "swc_plugin_keep_export.wasm",

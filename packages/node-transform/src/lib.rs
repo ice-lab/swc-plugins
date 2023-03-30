@@ -103,7 +103,7 @@ fn create_define_export(name: &str, value: &str) -> ModuleItem {
                             }))),
                             PropOrSpread::Prop(Box::new(Prop::Getter(GetterProp {
                                 span: DUMMY_SP,
-                                key: PropName::Ident(Ident { span: DUMMY_SP, sym: JsWord::from("get"), optional: Default::default() }),
+                                key: PropName::Ident(Ident { span: DUMMY_SP, sym: Default::default(), optional: Default::default() }),
                                 body: Option::Some(BlockStmt {
                                     span: DUMMY_SP,
                                     stmts: vec![
@@ -184,7 +184,6 @@ impl Fold for NodeTransform {
         let mut new_module_items: Vec<ModuleItem> = vec![];
         let mut import_id:i32 = 0;
         for module_item in items.iter() {
-            print!("member_expr ==> {:?}", module_item);
             match module_item {
                 ModuleItem::ModuleDecl(ModuleDecl::Import(import_decl)) => {
                     // Check all import statement and replace with custom import function `__ice_import__`
@@ -214,9 +213,17 @@ impl Fold for NodeTransform {
                                     span: DUMMY_SP,
                                     kind: VarDeclKind::Const,
                                     declare: false,
-                                    decls: vec![create_var_decl(&local.sym, Option::Some(Box::new(Expr::Ident(
-                                        Ident { span: DUMMY_SP, sym: JsWord::from(import_val.to_string()), optional: Default::default() }
-                                    ))))],
+                                    decls: vec![
+                                        VarDeclarator {
+                                            span: DUMMY_SP,
+                                            name: Pat::Ident(BindingIdent {
+                                                id: local.clone(),
+                                                type_ann: Default::default(),
+                                            }),
+                                            init: Option::Some(Box::new(Expr::Ident(
+                                                Ident { span: DUMMY_SP, sym: JsWord::from(import_val.to_string()), optional: Default::default() }
+                                        ))), definite: false }
+                                    ],
                                 })))))
                             }
                             ImportSpecifier::Default(default) => {

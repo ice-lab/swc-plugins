@@ -237,3 +237,21 @@ fn fixture_remove_top_try_catch(input: PathBuf) {
     }
   );
 }
+
+#[fixture("tests/fixture/remove-named-export/input.js")]
+fn fixture_remove_named_export(input: PathBuf) {
+  let parent = input.parent().unwrap();
+  let output = parent.join("output.js");
+
+  test_fixture(
+    Default::default(),
+    &|_t| {
+      keep_exprs([String::from("getData")].to_vec())
+    },
+    &input,
+    &output,
+    FixtureTestConfig {
+      ..Default::default()
+    }
+  );
+}

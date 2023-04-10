@@ -1,6 +1,6 @@
 {
     "name": "@ice/swc-plugin-remove-export",
-    "version": "0.1.3",
+    "version": "0.1.4",
     "license": "MIT",
     "keywords": ["swc-plugin"],
     "main": "swc_plugin_remove_export.wasm",

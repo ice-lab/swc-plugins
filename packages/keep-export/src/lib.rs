@@ -98,9 +98,20 @@ impl Fold for Analyzer<'_> {
     }
 
     fn fold_export_named_specifier(&mut self, s: ExportNamedSpecifier) -> ExportNamedSpecifier {
-        if let ModuleExportName::Ident(id) = &s.orig {
-            if self.state.should_keep_identifier(id) {
-                self.add_ref(id.to_id());
+        if let ModuleExportName::Ident(i) = &s.orig {
+            match &s.exported {
+                Some(exported) => {
+                    if let ModuleExportName::Ident(e) = exported {
+                        if self.state.should_keep_identifier(e) {
+                            self.add_ref(i.to_id());
+                        }
+                    }
+                }
+                None => {
+                    if self.state.should_keep_identifier(i) {
+                        self.add_ref(i.to_id());
+                    }
+                }
             }
         }
 
@@ -268,14 +279,6 @@ impl Fold for Analyzer<'_> {
         let s = s.fold_children_with(self);
 
         s
-    }
-
-    fn fold_named_export(&mut self, mut n: NamedExport) -> NamedExport {
-        if n.src.is_some() {
-            n.specifiers = n.specifiers.fold_with(self);
-        }
-
-        n
     }
 
     fn fold_default_decl(&mut self, d: DefaultDecl) -> DefaultDecl {

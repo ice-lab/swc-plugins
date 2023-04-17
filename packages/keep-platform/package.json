@@ -1,6 +1,6 @@
 {
     "name": "@ice/swc-plugin-keep-platform",
-    "version": "0.1.2",
+    "version": "0.1.2-beta.0",
     "license": "MIT",
     "keywords": ["swc-plugin"],
     "main": "swc_plugin_keep_platform.wasm",

@@ -43,7 +43,7 @@ jobs:
 
       - name: Publish npm packages
         run: |
-          npm publish --workspaces --access public
+          npm publish --workspaces --access public --tag beta
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -196,13 +196,17 @@ impl Fold for NodeTransform {
                         match specifier {
                             ImportSpecifier::Named(named) => {
                                 let ImportNamedSpecifier {
-                                    local, ..
+                                    local, imported, ..
                                 } = named;
+                                let mut property = &local.sym;
+                                if let Some(ModuleExportName::Ident(import_ident)) = imported {
+                                    property = &import_ident.sym;
+                                }
                                 new_module_items.push(ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
                                     span: DUMMY_SP,
                                     kind: VarDeclKind::Const,
                                     declare: false,
-                                    decls: vec![create_member_decl(local.clone(), &import_val, &local.sym)],
+                                    decls: vec![create_member_decl(local.clone(), &import_val, property)],
                                 })))))
                             }
                             ImportSpecifier::Namespace(namespace) => {

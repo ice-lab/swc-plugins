@@ -1,4 +1,4 @@
-use easy_error::{Error};
+use easy_error::Error;
 use fxhash::FxHashSet;
 use std::mem::take;
 use swc_common::pass::{Repeat, Repeated};

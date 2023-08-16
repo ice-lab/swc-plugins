@@ -12,15 +12,15 @@ fxhash= "0.2.1"
 lazy_static = "1.4.0"
 easy-error = "1.0.0"
 tracing = { version="0.1.34", features = ["release_max_level_info"] }
-swc_core = { version = "0.69.0", features = [
+swc_core = { version = "0.79.56", features = [
   "ecma_plugin_transform",
   "ecma_utils",
   "ecma_visit",
   "ecma_ast",
   "common",
 ]}
-swc_common = { version = "0.29.37", features = ["concurrent"] }
+swc_common = { version = "0.31.18", features = ["concurrent"] }
 serde_json = {version = "1", features = ["unbounded_depth"]}
 
 [dev-dependencies]
-testing="*"
+testing = "0.33.21"

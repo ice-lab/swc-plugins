@@ -1,6 +1,6 @@
 [package]
-name = "swc_plugin_keep_platform"
-version = "0.1.1"
+name = "swc_plugin_react_server_component"
+version = "0.1.0"
 edition = "2021"
 
 [lib]
@@ -9,7 +9,6 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 serde = "1"
 fxhash= "0.2.1"
-lazy_static = "1.4.0"
 easy-error = "1.0.0"
 tracing = { version="0.1.34", features = ["release_max_level_info"] }
 swc_core = { version = "0.83.10", features = [
@@ -17,7 +16,7 @@ swc_core = { version = "0.83.10", features = [
   "ecma_utils",
   "ecma_visit",
   "ecma_ast",
-  "common",
+  "common"
 ]}
 swc_common = { version = "0.32.1", features = ["concurrent"] }
 serde_json = {version = "1", features = ["unbounded_depth"]}

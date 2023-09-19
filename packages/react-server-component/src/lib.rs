@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use swc_core::{
   common::{
+    comments::{Comment, CommentKind, Comments},
     FileName,
     Span,DUMMY_SP,
     errors::HANDLER
@@ -11,7 +12,7 @@ use swc_core::{
       visit::{Fold, FoldWith, VisitMut, as_folder, noop_visit_mut_type, VisitMutWith},
       utils::{prepend_stmts, quote_ident, quote_str, ExprFactory}
   },
-  plugin::{plugin_transform, proxies::TransformPluginProgramMetadata, metadata::TransformPluginMetadataContextKind},
+  plugin::{plugin_transform, proxies::{TransformPluginProgramMetadata, PluginCommentsProxy}, metadata::TransformPluginMetadataContextKind},
 };
 
 struct ModuleImports {
@@ -19,8 +20,11 @@ struct ModuleImports {
   specifiers: Vec<(JsWord, Span)>,
 }
 
-pub fn react_server_component(file_name: FileName, is_server: bool) -> impl Fold + VisitMut {
+pub fn react_server_component<C>(file_name: FileName, is_server: bool, comments: C) -> impl Fold + VisitMut
+where C: Comments,
+{
   as_folder(ReactServerComponent {
+    comments,
     filepath: file_name.to_string(),
     is_server,
     export_names: vec![],
@@ -59,17 +63,17 @@ struct Config {
   pub is_server: bool
 }
 
-struct ReactServerComponent {
+struct ReactServerComponent<C: Comments> {
   filepath: String,
   is_server: bool,
+  comments: C,
   export_names: Vec<String>,
   invalid_server_imports: Vec<JsWord>,
   invalid_client_imports: Vec<JsWord>,
   invalid_server_react_apis: Vec<JsWord>,
   invalid_server_ice_imports: Vec<JsWord>,
 }
-
-impl ReactServerComponent {
+impl<C: Comments> ReactServerComponent<C>  {
   fn create_module_proxy(&self, module: &mut Module) {
     // Clear all statements and module decalarations.
     module.body.clear();
@@ -127,6 +131,7 @@ impl ReactServerComponent {
         })),
       ].into_iter(),
     );
+    self.prepend_comment_node(module);
   }
   
   fn collect_top_level_directives_and_imports(&mut self, module: &mut Module) -> (bool, bool, Vec<ModuleImports>) {
@@ -348,13 +353,27 @@ impl ReactServerComponent {
       }
     }
   }
+
+  fn prepend_comment_node(&self, module: &Module) {
+    // Prepend a special comment at the top of file, so that we can identify client boundary in webpack plugin
+    // just by reading the firist line of file.
+    self.comments.add_leading(
+      module.span.lo,
+      Comment {
+        kind: CommentKind::Block,
+        span: DUMMY_SP,
+        text: format!("__ice_internal_client_entry_do_not_use__ {}", self.export_names.join(",")).into(),
+      },
+    );
+  }
 }
 
-impl VisitMut for ReactServerComponent {
+impl <C: Comments> VisitMut for ReactServerComponent<C> {
   noop_visit_mut_type!();
 
   fn visit_mut_module(&mut self, module: &mut Module) {
     let (is_client_entry, is_action_file, imports) = self.collect_top_level_directives_and_imports(module);
+    tracing::debug!("is_client_entry: {}, is_action_file: {}", is_client_entry, is_action_file);
     if self.is_server {
       if !is_client_entry {
         self.assert_server_import(&imports);
@@ -367,7 +386,9 @@ impl VisitMut for ReactServerComponent {
       if !is_action_file {
         self.assert_client_import(&imports);
       }
-      // TODO: handle client entry in the future.
+      if is_client_entry {
+        self.prepend_comment_node(module);
+      }
     }
     module.visit_mut_children_with(self)
   }
@@ -385,5 +406,5 @@ pub fn process_transform(program: Program, _metadata: TransformPluginProgramMeta
     Some(s) => FileName::Real(s.into()),
     None => FileName::Anon,
   };
-  program.fold_with(&mut react_server_component(file_name, config.is_server))
+  program.fold_with(&mut react_server_component(file_name, config.is_server, PluginCommentsProxy))
 }

@@ -7,14 +7,32 @@ use swc_core::{
 use swc_plugin_react_server_component::react_server_component;
 
 #[fixture("tests/fixture/server/**/input.js")]
-fn fixture(input: PathBuf) {
+fn fixture_server(input: PathBuf) {
   let parent = input.parent().unwrap();
   let output = parent.join("output.js");
 
   test_fixture(
     Default::default(),
-    &|_t| {
-      react_server_component(FileName::Real("file_path.js".into()), true)
+    &|t| {
+      react_server_component(FileName::Real("file_path.js".into()), true, t.comments.clone())
+    },
+    &input,
+    &output,
+    FixtureTestConfig {
+      ..Default::default()
+    },
+  );
+}
+
+#[fixture("tests/fixture/client/**/input.js")]
+fn fixture_client(input: PathBuf) {
+  let parent = input.parent().unwrap();
+  let output = parent.join("output.js");
+
+  test_fixture(
+    Default::default(),
+    &|t| {
+      react_server_component(FileName::Real("file_path.js".into()), false, t.comments.clone())
     },
     &input,
     &output,

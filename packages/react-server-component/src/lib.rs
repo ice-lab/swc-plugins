@@ -373,7 +373,6 @@ impl <C: Comments> VisitMut for ReactServerComponent<C> {
 
   fn visit_mut_module(&mut self, module: &mut Module) {
     let (is_client_entry, is_action_file, imports) = self.collect_top_level_directives_and_imports(module);
-    tracing::debug!("is_client_entry: {}, is_action_file: {}", is_client_entry, is_action_file);
     if self.is_server {
       if !is_client_entry {
         self.assert_server_import(&imports);

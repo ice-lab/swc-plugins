@@ -421,7 +421,7 @@ impl Fold for KeepExportsExprs {
                 specifiers:  Vec::new(),
                 src: None,
                 type_only: false,
-                asserts: None
+                with: Default::default(),
             })));
         }
 

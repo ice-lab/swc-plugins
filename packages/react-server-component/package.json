@@ -1,6 +1,6 @@
 {
     "name": "@ice/swc-plugin-react-server-component",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "license": "MIT",
     "keywords": ["swc-plugin"],
     "main": "swc_plugin_react_server_component.wasm",

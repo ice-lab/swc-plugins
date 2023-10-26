@@ -20,13 +20,14 @@ struct ModuleImports {
   specifiers: Vec<(JsWord, Span)>,
 }
 
-pub fn react_server_component<C>(file_name: FileName, is_server: bool, comments: C) -> impl Fold + VisitMut
+pub fn react_server_component<C>(file_name: FileName, is_server: bool, assert_imports: bool, comments: C) -> impl Fold + VisitMut
 where C: Comments,
 {
   as_folder(ReactServerComponent {
     comments,
     filepath: file_name.to_string(),
     is_server,
+    assert_imports,
     export_names: vec![],
     invalid_server_imports: vec![
       JsWord::from("client-only"),
@@ -60,12 +61,14 @@ where C: Comments,
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct Config {
-  pub is_server: bool
+  pub is_server: bool,
+  pub assert_imports: bool
 }
 
 struct ReactServerComponent<C: Comments> {
   filepath: String,
   is_server: bool,
+  assert_imports: bool,
   comments: C,
   export_names: Vec<String>,
   invalid_server_imports: Vec<JsWord>,
@@ -374,15 +377,16 @@ impl <C: Comments> VisitMut for ReactServerComponent<C> {
   fn visit_mut_module(&mut self, module: &mut Module) {
     let (is_client_entry, is_action_file, imports) = self.collect_top_level_directives_and_imports(module);
     if self.is_server {
-      if !is_client_entry {
+      if !is_client_entry && self.assert_imports {
         self.assert_server_import(&imports);
-      } else {
+      } 
+      if is_client_entry {
         // Proxy client module.
         self.create_module_proxy(module);
         return;
       }
     } else {
-      if !is_action_file {
+      if !is_action_file && self.assert_imports {
         self.assert_client_import(&imports);
       }
       if is_client_entry {
@@ -405,5 +409,5 @@ pub fn process_transform(program: Program, _metadata: TransformPluginProgramMeta
     Some(s) => FileName::Real(s.into()),
     None => FileName::Anon,
   };
-  program.fold_with(&mut react_server_component(file_name, config.is_server, PluginCommentsProxy))
+  program.fold_with(&mut react_server_component(file_name, config.is_server, config.assert_imports, PluginCommentsProxy))
 }

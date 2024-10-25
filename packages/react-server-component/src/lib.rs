@@ -105,7 +105,7 @@ impl<C: Comments> ReactServerComponent<C>  {
               init: Some(Box::new(Expr::Call(CallExpr {
                 span: DUMMY_SP,
                 callee: quote_ident!("require").as_callee(),
-                args: vec![quote_str!("react-server-dom-webpack/server.node").as_arg()],
+                args: vec![quote_str!("react-server-dom-webpack/server.edge").as_arg()],
                 type_args: Default::default(),
               }))),
               definite: false,

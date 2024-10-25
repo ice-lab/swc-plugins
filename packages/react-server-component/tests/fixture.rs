@@ -14,7 +14,7 @@ fn fixture_server(input: PathBuf) {
   test_fixture(
     Default::default(),
     &|t| {
-      react_server_component(FileName::Real("file_path.js".into()), true, t.comments.clone())
+      react_server_component(FileName::Real("file_path.js".into()), true, false,  t.comments.clone())
     },
     &input,
     &output,
@@ -32,7 +32,7 @@ fn fixture_client(input: PathBuf) {
   test_fixture(
     Default::default(),
     &|t| {
-      react_server_component(FileName::Real("file_path.js".into()), false, t.comments.clone())
+      react_server_component(FileName::Real("file_path.js".into()), false, false, t.comments.clone())
     },
     &input,
     &output,

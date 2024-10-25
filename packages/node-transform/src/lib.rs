@@ -1,15 +1,14 @@
 use swc_common::{
-    util::take::Take,
-    DUMMY_SP
+    util::take::Take, SyntaxContext, DUMMY_SP
 };
-use swc_core::{
-    ecma::{
-        ast::*,
-        atoms::{JsWord},
-        visit::{Fold, FoldWith},
-    },
-    plugin::{plugin_transform, proxies::TransformPluginProgramMetadata},
+use swc_core::ecma::{
+    ast::*,
+    atoms::JsWord,
+    visit::{Fold, FoldWith},
+
 };
+use swc_plugin_proxy::TransformPluginProgramMetadata;
+use swc_plugin_macro::plugin_transform;
 
 pub fn node_transform() -> impl Fold {
     NodeTransform
@@ -21,7 +20,7 @@ fn create_import_str(key: i32) -> String {
 
 fn create_var_decl(id: &str, init: Option<Box<Expr>>) -> VarDeclarator {
     let decl_name:Pat = Pat::Ident(BindingIdent {
-        id: Ident { span: DUMMY_SP, sym: JsWord::from(id), optional: Default::default() },
+        id: Ident { span: DUMMY_SP, sym: JsWord::from(id), optional: Default::default(), ctxt: SyntaxContext::empty() },
         type_ann: Default::default(),
     });
     VarDeclarator { span: DUMMY_SP, name: decl_name, init, definite: false }
@@ -37,12 +36,12 @@ fn create_member_decl(id: Ident, object_name: &str, property: &str) -> VarDeclar
             obj: Box::new(Expr::Ident(Ident {
                 span: DUMMY_SP,
                 sym: JsWord::from(object_name),
-                optional: Default::default()
+                optional: Default::default(),
+                ctxt: SyntaxContext::empty()
             })),
-            prop: MemberProp::Ident(Ident {
+            prop: MemberProp::Ident(IdentName {
                 span: DUMMY_SP,
-                sym: JsWord::from(property),
-                optional: Default::default()
+                sym: JsWord::from(property)
             })
         }
     ))), definite: false }
@@ -61,9 +60,10 @@ fn create_import_decl(import_val: &str, import_source: &str) -> ModuleItem {
                 arg: Box::new(Expr::Call(
                     CallExpr {
                         span: DUMMY_SP,
-                        callee: Callee::Expr(Box::new(Expr::Ident(Ident { span: DUMMY_SP, sym: JsWord::from("__ice_import__"), optional: Default::default() }))),
+                        callee: Callee::Expr(Box::new(Expr::Ident(Ident { ctxt: SyntaxContext::empty(), span: DUMMY_SP, sym: JsWord::from("__ice_import__"), optional: Default::default() }))),
                         args: call_args,
-                        type_args: Take::dummy()
+                        type_args: Take::dummy(),
+                        ctxt: SyntaxContext::empty()
                     }
                 ))
             }
@@ -74,7 +74,8 @@ fn create_import_decl(import_val: &str, import_source: &str) -> ModuleItem {
         span: DUMMY_SP,
         kind: VarDeclKind::Const,
         declare: false,
-        decls
+        decls,
+        ctxt: SyntaxContext::empty(),
     }))))
 }
 
@@ -83,33 +84,35 @@ fn create_define_export(name: &str, value: &str) -> ModuleItem {
         span: DUMMY_SP,
         expr: Box::new(Expr::Call(
             CallExpr {
+                ctxt: SyntaxContext::empty(),
                 span: DUMMY_SP,
                 callee: Callee::Expr(Box::new(Expr::Member(
                     MemberExpr {
                         span: DUMMY_SP,
-                        obj: Box::new(Expr::Ident(Ident { span: DUMMY_SP, sym: JsWord::from("Object"), optional: Default::default() })),
-                        prop: MemberProp::Ident(Ident { span: DUMMY_SP, sym: JsWord::from("defineProperty"), optional: Default::default() })
+                        obj: Box::new(Expr::Ident(Ident { ctxt: SyntaxContext::empty(), span: DUMMY_SP, sym: JsWord::from("Object"), optional: Default::default() })),
+                        prop: MemberProp::Ident(IdentName { span: DUMMY_SP, sym: JsWord::from("defineProperty")  })
                     }
                 ))),
                 args: vec![
-                    ExprOrSpread { spread: Take::dummy(), expr: Box::new(Expr::Ident(Ident { span: DUMMY_SP, sym: JsWord::from("__ice_exports__"), optional: Default::default() }))},
+                    ExprOrSpread { spread: Take::dummy(), expr: Box::new(Expr::Ident(Ident { span: DUMMY_SP, sym: JsWord::from("__ice_exports__"), optional: Default::default(), ctxt: SyntaxContext::empty() }))},
                     ExprOrSpread { spread: Take::dummy(), expr: Box::new(Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: JsWord::from(name), raw: Default::default() })))},
                     ExprOrSpread { spread: Take::dummy(), expr: Box::new(Expr::Object(ObjectLit {
                         span: DUMMY_SP,
                         props: vec![
                             PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-                                key: PropName::Ident(Ident { span: DUMMY_SP, sym: JsWord::from("enumerable"), optional: Default::default() }),
+                                key: PropName::Ident(IdentName { span: DUMMY_SP, sym: JsWord::from("enumerable") }),
                                 value: Box::new(Expr::Lit(Lit::Bool(Bool { span: DUMMY_SP, value: true })))
                             }))),
                             PropOrSpread::Prop(Box::new(Prop::Getter(GetterProp {
                                 span: DUMMY_SP,
-                                key: PropName::Ident(Ident { span: DUMMY_SP, sym: Default::default(), optional: Default::default() }),
+                                key: PropName::Ident(IdentName { span: DUMMY_SP, sym: Default::default() }),
                                 body: Option::Some(BlockStmt {
+                                    ctxt: SyntaxContext::empty(),
                                     span: DUMMY_SP,
                                     stmts: vec![
                                         Stmt::Return(ReturnStmt {
                                             span: DUMMY_SP,
-                                            arg: Option::Some(Box::new(Expr::Ident(Ident { span: DUMMY_SP, sym: JsWord::from(value), optional: Default::default() })))
+                                            arg: Option::Some(Box::new(Expr::Ident(Ident { ctxt: SyntaxContext::empty(), span: DUMMY_SP, sym: JsWord::from(value), optional: Default::default() })))
                                         })
                                     ]
                                 }),
@@ -130,11 +133,12 @@ fn create_call_expr(name: &str) -> ModuleItem {
         expr: Box::new(Expr::Call(
             CallExpr {
                 span: DUMMY_SP,
-                callee: Callee::Expr(Box::new(Expr::Ident(Ident { span: DUMMY_SP, sym: JsWord::from("__ice_exports_all__"), optional: Default::default() }))),
+                callee: Callee::Expr(Box::new(Expr::Ident(Ident { ctxt: SyntaxContext::empty(), span: DUMMY_SP, sym: JsWord::from("__ice_exports_all__"), optional: Default::default() }))),
                 args: vec![
-                    ExprOrSpread { spread: Take::dummy(), expr: Box::new(Expr::Ident(Ident { span: DUMMY_SP, sym: JsWord::from(name), optional: Default::default() }))},
+                    ExprOrSpread { spread: Take::dummy(), expr: Box::new(Expr::Ident(Ident {ctxt: SyntaxContext::empty(), span: DUMMY_SP, sym: JsWord::from(name), optional: Default::default() }))},
                 ],
-                type_args: Take::dummy()
+                type_args: Take::dummy(),
+                ctxt: SyntaxContext::empty()
             }
         ))
     }))
@@ -145,19 +149,19 @@ fn create_default_export(right: Box<Expr>) -> ModuleItem {
         span: DUMMY_SP,
         expr: Box::new(Expr::Assign(AssignExpr {
             span: DUMMY_SP,
-            left: PatOrExpr::Pat(Box::new(Pat::Expr(Box::new(Expr::Member(MemberExpr {
+            left: AssignTarget::Simple(SimpleAssignTarget::Member(MemberExpr {
                 span: DUMMY_SP,
                 obj: Box::new(Expr::Ident(Ident {
                     span: DUMMY_SP,
                     sym: JsWord::from("__ice_exports__"),
-                    optional: Default::default(),
+                    optional: false,
+                    ctxt: SyntaxContext::empty(),
                 })),
-                prop: MemberProp::Ident(Ident {
+                prop: MemberProp::Ident(IdentName {
                     span: DUMMY_SP,
                     sym: JsWord::from("default"),
-                    optional: Default::default(),
                 }),
-            }))))),
+            })),
             op: op!("="),
             right,
         })),
@@ -207,6 +211,7 @@ impl Fold for NodeTransform {
                                     kind: VarDeclKind::Const,
                                     declare: false,
                                     decls: vec![create_member_decl(local.clone(), &import_val, property)],
+                                    ctxt: SyntaxContext::empty(),
                                 })))))
                             }
                             ImportSpecifier::Namespace(namespace) => {
@@ -214,6 +219,7 @@ impl Fold for NodeTransform {
                                     local, ..
                                 } = namespace;
                                 new_module_items.push(ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
+                                    ctxt: SyntaxContext::empty(),
                                     span: DUMMY_SP,
                                     kind: VarDeclKind::Const,
                                     declare: false,
@@ -225,7 +231,7 @@ impl Fold for NodeTransform {
                                                 type_ann: Default::default(),
                                             }),
                                             init: Option::Some(Box::new(Expr::Ident(
-                                                Ident { span: DUMMY_SP, sym: JsWord::from(import_val.to_string()), optional: Default::default() }
+                                                Ident { ctxt: SyntaxContext::empty(),  span: DUMMY_SP, sym: JsWord::from(import_val.to_string()), optional: Default::default() }
                                         ))), definite: false }
                                     ],
                                 })))))
@@ -239,6 +245,7 @@ impl Fold for NodeTransform {
                                     kind: VarDeclKind::Const,
                                     declare: false,
                                     decls: vec![create_member_decl(local.clone(), &import_val, "default")],
+                                    ctxt: SyntaxContext::empty()
                                 })))))
                             }
                         }
@@ -383,8 +390,10 @@ impl Fold for NodeTransform {
                 callee: Callee::Expr(Box::new(Expr::Ident(Ident {
                     span: DUMMY_SP,
                     sym: JsWord::from("__ice_dynamic_import__"),
-                    optional: Default::default()
+                    optional: Default::default(),
+                    ctxt: SyntaxContext::empty()
                 }))),
+                ctxt: SyntaxContext::empty(),
             }
         } else {
             call_expr.fold_children_with(self)
@@ -398,7 +407,8 @@ impl Fold for NodeTransform {
                 obj: Box::new(Expr::Ident(Ident {
                     span: DUMMY_SP,
                     sym: JsWord::from("__ice_import_meta__"),
-                    optional: Default::default()
+                    optional: Default::default(),
+                    ctxt: SyntaxContext::empty()
                 })),
                 prop: member_expr.prop,
             }

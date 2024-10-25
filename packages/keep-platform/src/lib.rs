@@ -1,15 +1,14 @@
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use swc_common::DUMMY_SP;
-use swc_core::{
-    ecma::{
-        ast::*,
-        atoms::JsWord,
-        visit::{Fold, FoldWith},
-    },
-    plugin::{plugin_transform, proxies::TransformPluginProgramMetadata},
+use swc_common::{SyntaxContext, DUMMY_SP};
+use swc_core::ecma::{
+    ast::*,
+    atoms::JsWord,
+    visit::{Fold, FoldWith},
 };
+use swc_plugin_proxy::TransformPluginProgramMetadata;
+use swc_plugin_macro::plugin_transform;
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct KeepPlatformPatcher {
@@ -169,18 +168,18 @@ fn insert_decls_into_module_items(decls: Vec<VarDeclarator>, module_items: &mut 
                 span: DUMMY_SP,
                 kind: VarDeclKind::Var,
                 declare: false,
-                decls: decls,
+                decls,
+                ctxt: SyntaxContext::empty()
             })))),
         )
     }
 }
 
 // Create Ident by jsword.
-fn create_jsword_ident(value: &str) -> Ident {
-    Ident {
+fn create_jsword_ident(value: &str) -> IdentName {
+    IdentName {
         span: DUMMY_SP,
-        sym: JsWord::from(value),
-        optional: Default::default(),
+        sym: JsWord::from(value)
     }
 }
 

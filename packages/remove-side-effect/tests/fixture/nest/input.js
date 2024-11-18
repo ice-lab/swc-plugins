@@ -5,6 +5,19 @@ const Component = () => {
     console.log("Hello");
   }, []);
 
+  {
+    const useEffect = () => {}
+    useEffect()
+  }
+
+  try {
+    const useEffect = () => {}
+    useEffect()
+  } catch (e) {
+    // React useEffect
+    useEffect(() => {})
+  }
+
   const B = () => {
     const useEffect = () => {
       console.log('another UseEffect');

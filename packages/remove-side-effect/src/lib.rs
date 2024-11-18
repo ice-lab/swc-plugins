@@ -7,7 +7,7 @@ use swc_core::plugin::{plugin_transform, proxies::TransformPluginProgramMetadata
 #[derive(Default)]
 pub struct TransformVisitor {
     react_imports: Vec<String>,
-    has_effect_import: bool,
+    imported_hooks: Vec<String>,
     scope_stack: Vec<Vec<String>>,
 }
 
@@ -15,9 +15,17 @@ impl TransformVisitor {
     pub fn new() -> Self {
         Self {
             react_imports: Vec::new(),
-            has_effect_import: false,
+            imported_hooks: Vec::new(),
             scope_stack: vec![Vec::new()],
         }
+    }
+
+    fn target_hooks() -> Vec<&'static str> {
+        vec!["useEffect", "useLayoutEffect"]
+    }
+
+    fn is_target_hook(name: &str) -> bool {
+        Self::target_hooks().contains(&name)
     }
 
     fn enter_scope(&mut self) {
@@ -43,22 +51,22 @@ impl TransformVisitor {
         false
     }
 
-    fn is_react_effect(&self, expr: &Expr) -> bool {
+    fn is_react_hook(&self, expr: &Expr) -> bool {
         match expr {
             Expr::Ident(ident) => {
                 let name = ident.sym.to_string();
-                if name == "useEffect" {
+                if Self::is_target_hook(&name) {
                     if self.is_local_variable(&name) {
                         return false;
                     }
-                    return self.has_effect_import;
+                    return self.imported_hooks.contains(&name);
                 }
             }
             Expr::Member(member) => {
                 if let Expr::Ident(obj) = &*member.obj {
                     if let Some(prop) = &member.prop.as_ident() {
                         return self.react_imports.contains(&obj.sym.to_string())
-                            && prop.sym.to_string() == "useEffect";
+                            && Self::is_target_hook(&prop.sym.to_string());
                     }
                 }
             }
@@ -108,8 +116,9 @@ impl VisitMut for TransformVisitor {
                     for spec in &import.specifiers {
                         match spec {
                             ImportSpecifier::Named(named) => {
-                                if named.local.sym.to_string() == "useEffect" {
-                                    self.has_effect_import = true;
+                                let name = named.local.sym.to_string();
+                                if Self::is_target_hook(&name) {
+                                    self.imported_hooks.push(name);
                                 }
                             }
                             ImportSpecifier::Default(default_import) => {
@@ -137,12 +146,43 @@ impl VisitMut for TransformVisitor {
             if let Stmt::Expr(expr_stmt) = stmt {
                 if let Expr::Call(call_expr) = &*expr_stmt.expr {
                     if let Callee::Expr(callee) = &call_expr.callee {
-                        return !self.is_react_effect(callee);
+                        return !self.is_react_hook(callee);
                     }
                 }
             }
             true
         });
+    }
+
+    fn visit_mut_block_stmt(&mut self, block: &mut BlockStmt) {
+        self.enter_scope();
+        block.visit_mut_children_with(self);
+        self.exit_scope();
+    }
+
+    // try-catch
+    fn visit_mut_try_stmt(&mut self, try_stmt: &mut TryStmt) {
+        self.enter_scope();
+        try_stmt.block.visit_mut_children_with(self);
+        self.exit_scope();
+
+        // catch
+        if let Some(catch) = &mut try_stmt.handler {
+            self.enter_scope();
+            // 添加 catch 参数到作用域
+            if let Some(Pat::Ident(ident)) = &catch.param {
+                self.add_to_current_scope(ident.sym.to_string());
+            }
+            catch.body.visit_mut_children_with(self);
+            self.exit_scope();
+        }
+
+        // finally
+        if let Some(finally) = &mut try_stmt.finalizer {
+            self.enter_scope();
+            finally.visit_mut_children_with(self);
+            self.exit_scope();
+        }
     }
 }
 

@@ -5,6 +5,15 @@ const Component = () => {
     console.log("Hello");
   }, []);
 
+  const B = () => {
+    const useEffect = () => {
+      console.log('another UseEffect');
+    };
+    useEffect();
+  }
+
+  B();
+
   return <div>Hello</div>
 }
 

@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import * as ReactA from 'react'
 
 const Component = () => {
-  useEffect(() => {
+  ReactA.useEffect(() => {
     console.log("Hello");
   }, []);
 

@@ -18,6 +18,7 @@ swc_core = {version = "0.79.56", features = [
   "ecma_ast",
   "common",
   "ecma_codegen",
+  "ecma_parser",
 ]}
 swc_common = { version = "0.31.18", features = ["concurrent"] }
 serde_json = {version = "1", features = ["unbounded_depth"]}

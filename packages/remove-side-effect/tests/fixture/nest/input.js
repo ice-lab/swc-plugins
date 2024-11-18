@@ -3,6 +3,9 @@ import { useEffect } from "react";
 const Component = () => {
   useEffect(() => {
     console.log("Hello");
+
+    const useEffect = () => {}
+    useEffect()
   }, []);
 
   {

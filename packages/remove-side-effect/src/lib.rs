@@ -6,8 +6,11 @@ use swc_core::plugin::{plugin_transform, proxies::TransformPluginProgramMetadata
 
 #[derive(Default)]
 pub struct TransformVisitor {
+    // Track React imports (e.g., import React from 'react')
     react_imports: Vec<String>,
+    // Track imported hooks (e.g., import { useEffect } from 'react')
     imported_hooks: Vec<String>,
+    // Stack of scopes for tracking variable declarations
     scope_stack: Vec<Vec<String>>,
 }
 
@@ -77,26 +80,96 @@ impl TransformVisitor {
 }
 
 impl VisitMut for TransformVisitor {
-    // when into any function, find same effect var exist or not.
+    fn visit_mut_stmts(&mut self, stmts: &mut Vec<Stmt>) {
+        self.enter_scope();
+
+        // First, process all variable declarations to build the scope
+        for stmt in stmts.iter_mut() {
+            if let Stmt::Decl(Decl::Var(var_decl)) = stmt {
+                for decl in &var_decl.decls {
+                    if let Pat::Ident(ident) = &decl.name {
+                        self.add_to_current_scope(ident.id.sym.to_string());
+                    }
+                }
+            }
+        }
+
+        // Process statements and remove React hooks
+        stmts.retain(|stmt| {
+            if let Stmt::Expr(expr_stmt) = stmt {
+                if let Expr::Call(call_expr) = &*expr_stmt.expr {
+                    if let Callee::Expr(callee) = &call_expr.callee {
+                        if let Expr::Ident(ident) = &**callee {
+                            let name = ident.sym.to_string();
+                            // If it's a local variable, keep the call
+                            if self.is_local_variable(&name) {
+                                return true;
+                            }
+                            // If it's an imported hook, remove the call
+                            if self.imported_hooks.contains(&name) {
+                                return false;
+                            }
+                        }
+                        return !self.is_react_hook(callee);
+                    }
+                }
+            }
+            true
+        });
+
+        // Process child nodes
+        for stmt in stmts.iter_mut() {
+            stmt.visit_mut_children_with(self);
+        }
+
+        self.exit_scope();
+    }
+
+    fn visit_mut_block_stmt(&mut self, block: &mut BlockStmt) {
+        self.enter_scope();
+        // Process all statements in the block
+        self.visit_mut_stmts(&mut block.stmts);
+        self.exit_scope();
+    }
+
     fn visit_mut_function(&mut self, func: &mut Function) {
         self.enter_scope();
+
+        // Add function parameters to scope
         for param in &func.params {
             if let Pat::Ident(ident) = &param.pat {
                 self.add_to_current_scope(ident.id.sym.to_string());
             }
         }
-        func.visit_mut_children_with(self);
+
+        // Process function body
+        if let Some(body) = &mut func.body {
+            self.visit_mut_stmts(&mut body.stmts);
+        }
+
         self.exit_scope();
     }
 
     fn visit_mut_arrow_expr(&mut self, arrow: &mut ArrowExpr) {
         self.enter_scope();
+
+        // Add arrow function parameters to scope
         for param in &arrow.params {
             if let Pat::Ident(ident) = param {
                 self.add_to_current_scope(ident.sym.to_string());
             }
         }
-        arrow.visit_mut_children_with(self);
+
+        // Process arrow function body
+        match &mut *arrow.body {
+            BlockStmtOrExpr::BlockStmt(block) => {
+                self.visit_mut_block_stmt(block);
+            }
+            BlockStmtOrExpr::Expr(expr) => {
+                expr.visit_mut_with(self);
+            }
+        }
+
         self.exit_scope();
     }
 
@@ -116,9 +189,18 @@ impl VisitMut for TransformVisitor {
                     for spec in &import.specifiers {
                         match spec {
                             ImportSpecifier::Named(named) => {
-                                let name = named.local.sym.to_string();
-                                if Self::is_target_hook(&name) {
-                                    self.imported_hooks.push(name);
+                                let original_name = match &named.imported {
+                                    Some(imported) => match imported {
+                                        // eg: import { useEffect as myEffect } from "react";
+                                        ModuleExportName::Ident(ident) => ident.sym.to_string(),
+                                        // eg: import { 'use-effect' as myEffect } from 'react';
+                                        ModuleExportName::Str(str) => str.value.to_string(),
+                                    },
+                                    None => named.local.sym.to_string(),
+                                };
+
+                                if Self::is_target_hook(&original_name) {
+                                    self.imported_hooks.push(named.local.sym.to_string());
                                 }
                             }
                             ImportSpecifier::Default(default_import) => {
@@ -137,30 +219,6 @@ impl VisitMut for TransformVisitor {
         module.visit_mut_children_with(self);
     }
 
-    fn visit_mut_stmts(&mut self, stmts: &mut Vec<Stmt>) {
-        for stmt in stmts.iter_mut() {
-            stmt.visit_mut_children_with(self);
-        }
-
-        stmts.retain(|stmt| {
-            if let Stmt::Expr(expr_stmt) = stmt {
-                if let Expr::Call(call_expr) = &*expr_stmt.expr {
-                    if let Callee::Expr(callee) = &call_expr.callee {
-                        return !self.is_react_hook(callee);
-                    }
-                }
-            }
-            true
-        });
-    }
-
-    fn visit_mut_block_stmt(&mut self, block: &mut BlockStmt) {
-        self.enter_scope();
-        block.visit_mut_children_with(self);
-        self.exit_scope();
-    }
-
-    // try-catch
     fn visit_mut_try_stmt(&mut self, try_stmt: &mut TryStmt) {
         self.enter_scope();
         try_stmt.block.visit_mut_children_with(self);
@@ -169,7 +227,7 @@ impl VisitMut for TransformVisitor {
         // catch
         if let Some(catch) = &mut try_stmt.handler {
             self.enter_scope();
-            // 添加 catch 参数到作用域
+            // add catch params to context
             if let Some(Pat::Ident(ident)) = &catch.param {
                 self.add_to_current_scope(ident.sym.to_string());
             }

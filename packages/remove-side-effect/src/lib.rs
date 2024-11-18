@@ -54,7 +54,7 @@ impl TransformVisitor {
         false
     }
 
-    fn is_react_hook(&self, expr: &Expr) -> bool {
+    fn is_removable_effect(&self, expr: &Expr) -> bool {
         match expr {
             Expr::Ident(ident) => {
                 let name = ident.sym.to_string();
@@ -110,7 +110,7 @@ impl VisitMut for TransformVisitor {
                                 return false;
                             }
                         }
-                        return !self.is_react_hook(callee);
+                        return !self.is_removable_effect(callee);
                     }
                 }
             }

@@ -1,20 +1,20 @@
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
 use fxhash::FxHashSet;
 use std::mem::take;
 use swc_common::pass::{Repeat, Repeated};
 use swc_common::DUMMY_SP;
-use swc_core::{
-    ecma::{
-        ast::*,
-        visit::{Fold, FoldWith, noop_fold_type},
-    },
-    plugin::{plugin_transform, proxies::TransformPluginProgramMetadata},
+use swc_core::ecma::{
+    ast::*,
+    visit::{Fold, FoldWith, noop_fold_type},
 };
+use swc_plugin_proxy::TransformPluginProgramMetadata;
+use swc_plugin_macro::plugin_transform;
 
 /// Note: This paths requires running `resolver` **before** running this.
 pub fn keep_exprs(keep_exports: Vec<String>) -> impl Fold {
     Repeat::new(KeepExportsExprs {
         state: State {
-            keep_exports: keep_exports,
+            keep_exports,
             ..Default::default()
         },
         in_lhs_of_var: false,
@@ -379,7 +379,7 @@ impl Fold for KeepExportsExprs {
                     tracing::trace!(
                         "Dropping import `{}{:?}` because it should be removed",
                         local.sym,
-                        local.span.ctxt
+                        local.span
                     );
 
                     self.state.should_run_again = true;
@@ -421,7 +421,7 @@ impl Fold for KeepExportsExprs {
                 specifiers:  Vec::new(),
                 src: None,
                 type_only: false,
-                asserts: None
+                with: None
             })));
         }
 
@@ -509,7 +509,7 @@ impl Fold for KeepExportsExprs {
                         tracing::trace!(
                             "Dropping var `{}{:?}` because it should be removed",
                             name.id.sym,
-                            name.id.span.ctxt
+                            name.id.span
                         );
 
                         return Pat::Invalid(Invalid { span: DUMMY_SP });
@@ -630,26 +630,6 @@ impl Fold for KeepExportsExprs {
     }
 }
 
-
-/// An example plugin function with macro support.
-/// `plugin_transform` macro interop pointers into deserialized structs, as well
-/// as returning ptr back to host.
-///
-/// It is possible to opt out from macro by writing transform fn manually via
-/// `__plugin_process_impl(
-///     ast_ptr: *const u8,
-///     ast_ptr_len: i32,
-///     config_str_ptr: *const u8,
-///     config_str_ptr_len: i32,
-///     context_str_ptr: *const u8,
-///     context_str_ptr_len: i32) ->
-///     i32 /*  0 for success, fail otherwise.
-///             Note this is only for internal pointer interop result,
-///             not actual transform result */
-///
-/// if plugin need to handle low-level ptr directly. However, there are
-/// important steps manually need to be performed like sending transformed
-/// results back to host. Refer swc_plugin_macro how does it work internally.
 #[plugin_transform]
 pub fn process_transform(program: Program, _metadata: TransformPluginProgramMetadata) -> Program {
     let tr = serde_json::from_str::<Vec<String>>(

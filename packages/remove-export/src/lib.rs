@@ -2,20 +2,19 @@ use easy_error::Error;
 use fxhash::FxHashSet;
 use std::mem::take;
 use swc_common::pass::{Repeat, Repeated};
-use swc_common::DUMMY_SP;
-use swc_core::{
-    ecma::{
-        ast::*,
-        visit::{Fold, FoldWith, noop_fold_type},
-    },
-    plugin::{plugin_transform, proxies::TransformPluginProgramMetadata},
+use swc_common::{SyntaxContext, DUMMY_SP};
+use swc_core::ecma::{
+    ast::*,
+    visit::{Fold, FoldWith, noop_fold_type},
 };
+use swc_plugin_proxy::TransformPluginProgramMetadata;
+use swc_plugin_macro::plugin_transform;
 
 /// Note: This paths requires running `resolver` **before** running this.
 pub fn remove_export_exprs(remove_exports: Vec<String>) -> impl Fold {
     Repeat::new(RemoveExportsExprs {
         state: State {
-            remove_exports: remove_exports,
+            remove_exports,
             ..Default::default()
         },
         in_lhs_of_var: false,
@@ -315,10 +314,12 @@ impl RemoveExportsExprs {
         return FnExpr {
             ident: None,
             function: Box::new(Function {
+                ctxt: SyntaxContext::empty(),
                 params: vec![],
                 body: Some(BlockStmt {
                     span: DUMMY_SP,
-                    stmts: vec![]
+                    stmts: vec![],
+                    ctxt: SyntaxContext::empty(),
                 }),
                 span: DUMMY_SP,
                 is_generator: false,
@@ -366,7 +367,7 @@ impl Fold for RemoveExportsExprs {
                     tracing::trace!(
                         "Dropping import `{}{:?}` because it should be removed",
                         local.sym,
-                        local.span.ctxt
+                        local.span
                     );
 
                     self.state.should_run_again = true;
@@ -509,7 +510,7 @@ impl Fold for RemoveExportsExprs {
                         tracing::trace!(
                             "Dropping var `{}{:?}` because it should be removed",
                             name.id.sym,
-                            name.id.span.ctxt
+                            name.id.span
                         );
 
                         return Pat::Invalid(Invalid { span: DUMMY_SP });

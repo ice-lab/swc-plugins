@@ -1,0 +1,26 @@
+[package]
+name = "swc_plugin_remove_side_effect"
+version = "0.0.1"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde = { workspace = true }
+fxhash= { workspace = true }
+tracing = { workspace = true, features = ["release_max_level_info"] }
+swc_core = { workspace = true, features = [
+  "ecma_plugin_transform",
+  "ecma_utils",
+  "ecma_visit",
+  "ecma_ast",
+  "common",
+  "ecma_codegen",
+  "ecma_parser",
+]}
+swc_common = { workspace = true, features = ["concurrent"] }
+serde_json = { workspace = true, features = ["unbounded_depth"]}
+
+[dev-dependencies]
+testing = { workspace = true }

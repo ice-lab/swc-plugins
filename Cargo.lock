@@ -1273,6 +1273,7 @@ dependencies = [
  "swc_atoms",
  "swc_common",
  "swc_ecma_ast",
+ "swc_ecma_codegen",
  "swc_ecma_parser",
  "swc_ecma_transforms_base",
  "swc_ecma_transforms_testing",
@@ -1580,6 +1581,19 @@ dependencies = [
  "swc_core",
  "swc_plugin_macro",
  "swc_plugin_proxy",
+ "testing",
+ "tracing",
+]
+
+[[package]]
+name = "swc_plugin_remove_side_effect"
+version = "0.0.1"
+dependencies = [
+ "fxhash",
+ "serde",
+ "serde_json",
+ "swc_common",
+ "swc_core",
  "testing",
  "tracing",
 ]

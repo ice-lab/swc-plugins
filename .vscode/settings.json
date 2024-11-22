@@ -1,4 +1,0 @@
-{
-  // cause we use a old version of rust, so we need to add this option to make rust-analyzer work
-  "rust-analyzer.cargo.extraArgs": ["-Z=unstable-options"]
-}

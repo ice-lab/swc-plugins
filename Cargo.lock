@@ -1589,7 +1589,6 @@ dependencies = [
 name = "swc_plugin_remove_side_effect"
 version = "0.0.1"
 dependencies = [
- "easy-error",
  "fxhash",
  "serde",
  "serde_json",

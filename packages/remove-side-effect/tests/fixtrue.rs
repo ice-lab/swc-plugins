@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use swc_core::ecma::parser::{EsConfig, Syntax};
+use swc_core::ecma::parser::{Syntax, EsSyntax};
 use swc_core::ecma::transforms::testing::test_fixture;
 use swc_core::ecma::visit::as_folder;
 use swc_plugin_remove_side_effect::TransformVisitor;
@@ -9,7 +9,7 @@ use testing::fixture;
 fn fixture_test(input: PathBuf) {
     let output = input.parent().unwrap().join("output.js");
     test_fixture(
-        Syntax::Es(EsConfig {
+        Syntax::Es(EsSyntax {
             jsx: true,
             decorators: true,
             ..Default::default()
